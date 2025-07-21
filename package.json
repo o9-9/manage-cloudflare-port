@@ -1,0 +1,15 @@
+{
+    "name": "quik-cli",
+    "type": "module",
+    "main": "./src/cli.js",
+    "bin": {
+        "quik": "./dist/quik",
+        "quik-dev": "./src/cli.sh"
+    },
+    "scripts": {
+        "b": "bun build --compile --bytecode --minify --outfile ./dist/quik ./src/cli.js"
+    },
+    "dependencies": {
+        "enquirer": "^2.4.1"
+    }
+}

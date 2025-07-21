@@ -1,0 +1,9 @@
+# modules
+node_modules
+bun.lock
+
+# out
+dist
+
+# macos
+.DS_Store
