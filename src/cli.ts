@@ -9,10 +9,10 @@ import { axiosLike } from './axiosLike.js';
 
 const { prompt } = enquirer;
 
-const red = (msg) => console.log(`\x1b[31m${msg}\x1b[0m`);
-const green = (msg) => console.log(`\x1b[32m${msg}\x1b[0m`);
+const red = (msg: string) => console.log(`\x1b[31m${msg}\x1b[0m`);
+const green = (msg: string) => console.log(`\x1b[32m${msg}\x1b[0m`);
 
-const quit = () => process.exit(0);
+const quit = () => process.exit();
 
 // https://github.com/Atrox/haikunatorjs/blob/master/src/index.ts
 
@@ -49,7 +49,6 @@ const nouns = [
 const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + '-' + nouns[nouns.length * Math.random() | 0] + '-' + (Math.random() * 10000 | 1000);
 
 (async () => {
-
     const quikDir = path.join(os.homedir(), '.quik');
     if (!fs.existsSync(quikDir)) fs.mkdirSync(quikDir, { recursive: true });
 
@@ -60,7 +59,7 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
             name: 'token',
             message: 'enter your Cloudflare API token (see README)',
             initial: ''
-        });
+        }) as { token: string };
 
         fs.writeFileSync(tokenFile, token.token.trim());
     }
@@ -68,10 +67,18 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
     const cloudflareApiToken = fs.readFileSync(tokenFile, 'utf-8').trim();
 
     const cloudflaredProcesses = execSync('ps aux | grep cloudflared', { stdio: 'pipe' });
-    const grepProcess = cloudflaredProcesses.toString().split('\n').find(line => line.includes('tunnel run --token'));
-    if (!grepProcess) quit(red('No active cloudflared tunnel found.'));
+    const grepProcess = cloudflaredProcesses.toString().split('\n').find(line => line.includes('run --token ey'));
+    if (!grepProcess) {
+        red('No active cloudflared tunnel found.')
+        return quit();
+    }
 
-    const tunnelRunToken = grepProcess.match(/--token\s+([^\s]+)/)[1];
+    const tunnelRunToken = grepProcess.match(/--token\s+([^\s]+)/)?.[1];
+    if (!tunnelRunToken) {
+        red('Failed to extract tunnel token from cloudflared process. Are you logged in?');
+        return quit();
+    }
+
     const tunnelRawCreds = atob(tunnelRunToken);
 
     let tunnelCreds;
@@ -79,7 +86,8 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
     try {
         tunnelCreds = JSON.parse(tunnelRawCreds);
     } catch {
-        quit(red('Failed to parse tunnel credentials. Make sure you have an active cloudflared tunnel running. Raw credentials: ' + tunnelRawCreds));
+        red('Failed to parse tunnel credentials. Make sure you have an active cloudflared tunnel running. Raw credentials: ' + tunnelRawCreds);
+        return quit();
     }
 
     const tunnelId = tunnelCreds.t;
@@ -91,7 +99,10 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
         }
     });
     const accountId = zones.data.result[0].account.id;
-    if (!accountId) quit(red('No account ID found. Make sure you have a valid Cloudflare account hooked up to your API token.'));
+    if (!accountId) {
+        red('No account ID found. Make sure you have a valid Cloudflare account hooked up to your API token.')
+        return quit();
+    }
 
     if (!process.argv[2] || process.argv[2] === 'add') {
         let tunnelConfig = await axiosLike.get(`https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`, {
@@ -106,12 +117,12 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
                 type: 'select',
                 name: 'domain',
                 message: 'select a domain to use for the tunnel',
-                choices: zones.data.result.sort((a, b) => {
+                choices: zones.data.result.sort((a: any, b: any) => {
                     const aHasQuik = a.name.toLowerCase().includes('quik');
                     const bHasQuik = b.name.toLowerCase().includes('quik');
                     if (aHasQuik === bHasQuik) return 0;
                     return aHasQuik ? -1 : 1;
-                }).map(zone => ({ name: zone.name, value: zone.name })),
+                }).map((zone: any) => ({ name: zone.name, value: zone.name })),
             },
             {
                 type: 'input',
@@ -124,7 +135,7 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
                 message: 'enter a subdomain to use for the server',
                 initial: genRandomName()
             }
-        ]);
+        ]) as { domain: string; port: string; sub: string };
 
         const ingresRules = tunnelConfig.data.result.config.ingress;
         ingresRules.splice(ingresRules.length - 1, 0, {
@@ -142,9 +153,12 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
             }
         });
 
-        if (!a.data.success) quit(red(`Failed to update tunnel configuration: ${a.data.errors.map(e => e.message).join(', ')}`));
+        if (!a.data.success) {
+            red(`Failed to update tunnel configuration: ${a.data.errors.map((e: any) => e.message).join(', ')}`);
+            return quit();
+        }
 
-        const zoneId = zones.data.result.find(zone => zone.name === answers.domain).id;
+        const zoneId = zones.data.result.find((zone: any) => zone.name === answers.domain).id;
         const b = await axiosLike.post(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
             type: 'CNAME',
             name: answers.sub,
@@ -157,9 +171,10 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
             }
         });
 
-        if (!b.data.success) quit(red(`Failed to create DNS record: ${b.data.errors.map(e => e.message).join(', ')}`));
+        if (b.data.success) green(`Tunnel updated successfully! You can access your server at https://${answers.sub}.${answers.domain}`)
+        else red(`Failed to create DNS record: ${b.data.errors.map((e: any) => e.message).join(', ')}`);
 
-        quit(green(`Tunnel updated successfully! You can access your server at https://${answers.sub}.${answers.domain}`));
+        quit();
     }
 
     if (process.argv[2] === 'delete' || process.argv[2] === 'remove' || process.argv[2] === 'rm') {
@@ -174,22 +189,27 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
             type: 'multiselect',
             name: 'domain',
             message: 'select the subdomain(s) to delete',
+            // @ts-expect-error useless untyped library
             hint: 'use space to toggle, enter to submit',
-            choices: tunnelConfig.data.result.config.ingress.filter(rule => rule.hostname).map(rule => ({
+            choices: tunnelConfig.data.result.config.ingress.filter((rule: any) => rule.hostname).map((rule: any) => ({
                 name: `${rule.hostname} (${rule.service})`,
                 value: rule.hostname
             })),
             result(names) {
+                // @ts-expect-error useless untyped library
                 return Object.values(this.map(names))
             }
-        });
+        }) as { domain: string[] };
 
-        if (answers.domain.length === 0) quit(red('No subdomains selected for deletion.'));
+        if (answers.domain.length === 0) {
+            red('No subdomains selected for deletion.');
+            return quit();
+        }
 
         await Promise.all(answers.domain.map(async (domain) => {
             const zoneName = domain.split('.').splice(-2).join('.');
 
-            const zone = zones.data.result.find(z => z.name === zoneName);
+            const zone = zones.data.result.find((z: any) => z.name === zoneName);
             if (!zone) return red(`Zone "${zoneName}" not found.`);
 
             const records = await axiosLike.get(`https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records`, {
@@ -199,7 +219,7 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
                 }
             });
 
-            const record = records.data.result.find(r => r.name === domain && r.type === 'CNAME');
+            const record = records.data.result.find((r: any) => r.name === domain && r.type === 'CNAME');
             if (record) {
                 const c = await axiosLike.delete(`https://api.cloudflare.com/client/v4/zones/${zone.id}/dns_records/${record.id}`, {
                     headers: {
@@ -208,10 +228,13 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
                     }
                 });
 
-                if (!c.data.success) quit(red(`Failed to delete DNS record: ${c.data.errors.map(e => e.message).join(', ')}`));
+                if (!c.data.success) {
+                    red(`Failed to delete DNS record: ${c.data.errors.map((e: any) => e.message).join(', ')}`);
+                    quit();
+                }
             } else red(`DNS record for ${domain} not found.`);
 
-            tunnelConfig.data.result.config.ingress = tunnelConfig.data.result.config.ingress.filter(rule => rule.hostname !== domain);
+            tunnelConfig.data.result.config.ingress = tunnelConfig.data.result.config.ingress.filter((rule: any) => rule.hostname !== domain);
 
             green(`Domain ${domain} ${record ? 'deleted DNS record & ' : ''}removed from tunnel configuration!`);
         }));
@@ -225,8 +248,9 @@ const genRandomName = () => adjectives[adjectives.length * Math.random() | 0] + 
             }
         });
 
-        if (!a.data.success) quit(red(`Failed to update tunnel configuration: ${a.data.errors.map(e => e.message).join(', ')}`));
+        if (a.data.success) green('Selected subdomains deleted successfully!')
+        else red(`Failed to update tunnel configuration: ${a.data.errors.map((e: any) => e.message).join(', ')}`);
 
-        quit(green('Selected subdomains deleted successfully!'));
+        quit();
     }
 })();
