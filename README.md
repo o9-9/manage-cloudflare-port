@@ -13,13 +13,23 @@ first, setup cloudflare:
 3. add domain(s) to cloudflare if you do not yet have them
 4. create and set up a tunnel in zero trust as described [here](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel)
 
-then, setup quik:
+then, download quik:
 
+1. find the executable intended for your system in [dist](./dist)
+2. download and run it
+
+optionally, if you're on mac/linux, add it as an alias in your terminal for easier use:
+
+1. identify the shell (`echo $SHELL`)
+2. find the path to the quik executable you downloaded (`pwd` in the folder where it is located)
+3. add `alias quik='/path/to/quik-executable'` to your shell config file:
+    - mac: `~/.zshrc` for zsh or `~/.bash_profile` for bash
+    - linux: `~/.zshrc` for zsh or `~/.bashrc` for bash
+
+if you want to build quik yourself (builds on mac/linux only):
 1. install [bun](https://bun.sh)
 2. clone the repo: `git clone https://github.com/VillainsRule/quik && cd quik`
-3. build quik: `bun b`
-4. install quick: `bun link`
-5. try it! `quik`
+3. build quik: `./build.sh`
    
 <br><br>
 
