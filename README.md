@@ -36,9 +36,8 @@ if you want to build quik yourself (builds on mac/linux only):
 ## creating a cloudflare API key
 this is needed for the program to start.
 
-1. go to the [cloudflare api token page](https://dash.cloudflare.com/profile/api-tokens)
-2. click on the "account owned tokens" link
-3. create one with the following permissions:
+1. go to the [cloudflare account token page](https://dash.cloudflare.com/?to=/:account/api-tokens)
+2. create one with the following permissions:
 
 ![permissions](https://files.catbox.moe/02vhok.png)
 
@@ -46,7 +45,7 @@ the summary should look like this:
 
 ![summary](https://files.catbox.moe/gm9m0r.png)
 
-4. put it into quik
+3. put it into quik
 
 <br><br>
 <h5 align='center'>made with :heart: by VillainsRule</h5>
