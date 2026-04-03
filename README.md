@@ -5,22 +5,28 @@
 
 <br><br>
 
-## setup
-1. find the executable intended for your system in [dist](./dist)
-2. download and run it
+## setup (mac/linux)
+1. `git clone https://github.com/VillainsRule/quik && cd quik`
+2. `bun install`
+3. `bun run build`
+4. `chmod +x ~/quik`
+5. the executable is at `~/quik`
 
-optionally, if you're on mac/linux, add it as an alias in your terminal for easier use:
-
+optionally, add a terminal alias:
 1. identify the shell (`echo $SHELL`)
 2. find the path to the quik executable you downloaded (`pwd` in the folder where it is located)
-3. add `alias quik='/path/to/quik-executable'` to your shell config file:
+3. add `alias quik='~/quik'` to your shell config file:
     - mac: `~/.zshrc` for zsh or `~/.bash_profile` for bash
     - linux: `~/.zshrc` for zsh or `~/.bashrc` for bash
 
-if you want to build quik yourself (builds on mac/linux only):
-1. install [bun](https://bun.sh)
-2. clone the repo: `git clone https://github.com/VillainsRule/quik && cd quik`
-3. build quik: `./build.sh`
+<br><br>
+
+## setup (windows)
+1. `git clone https://github.com/VillainsRule/quik && cd quik`
+2. `bun install`
+3. `bun run build`
+4. the executable is at `{homedir}/quik`
+5. i don't own a windows device so idk what to do now
 
 <br><br>
 
